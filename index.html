@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoSage Vehicle AI</title>
+    <style>
+        /* ==========================================================================
+           CSS STYLES
+           ========================================================================== */
+
+        :root {
+            --bg-dark: #020617;
+            --bg-grad: #0f172a;
+            --glass-bg: rgba(15, 23, 42, 0.7);
+            --glass-border: rgba(56, 189, 248, 0.2);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-glow: #0ea5e9;
+            --accent-glow-secondary: #8b5cf6;
+            --highlight: #c084fc;
+            --error: #ef4444;
+            --success: #10b981;
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: radial-gradient(circle at 50% 0%, var(--bg-grad), var(--bg-dark) 80%);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Security Warning Banner */
+        .security-banner {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            text-align: center;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .view {
+            display: none;
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            overflow: hidden;
+        }
+
+        .view.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* ==========================================================================
+           AUTH SCREEN
+           ========================================================================== */
+        #auth-view {
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px;
+            border-radius: 24px;
+            text-align: center;
+            animation: slideUp 0.6s ease-out forwards;
+        }
+
+        .logo-container {
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .logo-svg {
+            width: 80px;
+            height: 80px;
+            fill: none;
+            stroke: var(--accent-glow);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 12px rgba(14, 165, 233, 0.6));
+            animation: pulse 3s infinite alternate;
+        }
+
+        .logo-svg .gear {
+            transform-origin: 50% 50%;
+            animation: spin 10s linear infinite;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(to right, var(--accent-glow), var(--accent-glow-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            font-family: monospace;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-glow), var(--accent-glow-secondary));
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-msg {
+            color: var(--error);
+            font-size: 0.9rem;
+            margin-top: 16px;
+            min-height: 20px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .error-msg.show {
+            opacity: 1;
+        }
+
+        .loader {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        /* ==========================================================================
+           CHAT INTERFACE
+           ========================================================================== */
+        #chat-view {
+            flex-direction: column;
+        }
+
+        .top-bar {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+
+        .brand-small {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            background: linear-gradient(to right, var(--accent-glow), var(--accent-glow-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-small svg {
+            width: 24px;
+            height: 24px;
+            stroke: var(--accent-glow);
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        select.input-field, input[type="number"].input-field {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            width: auto;
+            min-width: 120px;
+            font-family: var(--font-main);
+            background-color: rgba(0,0,0,0.6);
+        }
+        
+        input[type="range"] {
+            accent-color: var(--accent-glow);
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+
+        .btn-icon:hover {
+            color: var(--text-main);
+            border-color: var(--accent-glow);
+            background: rgba(14, 165, 233, 0.1);
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .message {
+            display: flex;
+            gap: 16px;
+            max-width: 85%;
+            animation: slideInRight 0.4s ease-out;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+            animation: slideInLeft 0.4s ease-out;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+        }
+
+        .message.user .avatar {
+            background: rgba(14, 165, 233, 0.2);
+            border-color: rgba(14, 165, 233, 0.4);
+            color: var(--accent-glow);
+        }
+
+        .message.ai .avatar {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: rgba(139, 92, 246, 0.4);
+            color: var(--accent-glow-secondary);
+        }
+
+        .msg-content {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+            line-height: 1.6;
+            color: #e2e8f0;
+        }
+
+        .message.user .msg-content {
+            background: rgba(14, 165, 233, 0.1);
+            border-bottom-right-radius: 4px;
+            border-color: rgba(14, 165, 233, 0.2);
+        }
+
+        .message.ai .msg-content {
+            background: rgba(15, 23, 42, 0.6);
+            border-bottom-left-radius: 4px;
+            border-color: var(--glass-border);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Term Highlighting */
+        .term-highlight {
+            color: var(--highlight);
+            font-weight: 600;
+            text-shadow: 0 0 8px rgba(192, 132, 252, 0.4);
+            position: relative;
+            cursor: default;
+        }
+
+        .term-badge-container {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+
+        .term-badge {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            background: rgba(192, 132, 252, 0.15);
+            border: 1px solid rgba(192, 132, 252, 0.3);
+            border-radius: 6px;
+            color: var(--highlight);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .metadata {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+        
+        .metadata-item { display: flex; align-items: center; gap: 4px; }
+
+        .action-icon {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .action-icon:hover { opacity: 1; color: var(--accent-glow); }
+
+        .input-area {
+            padding: 24px;
+            background: var(--glass-bg);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            gap: 16px;
+            align-items: flex-end;
+            z-index: 10;
+        }
+
+        .textarea-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 16px;
+            padding-right: 50px;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            font-size: 1rem;
+            resize: none;
+            height: 56px;
+            max-height: 200px;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            border-color: var(--accent-glow);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+        }
+
+        .send-btn {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            border: none;
+            background: var(--accent-glow);
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .send-btn:hover {
+            background: var(--accent-glow-secondary);
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-glow);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.4)); }
+            100% { filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.8)); }
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .top-bar { flex-direction: column; gap: 16px; align-items: flex-start; }
+            .controls { flex-wrap: wrap; width: 100%; justify-content: space-between; }
+            .message { max-width: 95%; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================================================
+         HTML STRUCTURE
+         ========================================================================== -->
+
+    <!-- Security Banner -->
+    <div class="security-banner" id="security-banner">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        Warning: Browser API keys are not secure for production. Used for local session only.
+    </div>
+
+    <!-- Auth View -->
+    <div id="auth-view" class="view active">
+        <div class="auth-card glass">
+            <div class="logo-container">
+                <!-- Vehicle/Tech SVG Logo -->
+                <svg class="logo-svg" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" stroke-dasharray="8 4" opacity="0.5"/>
+                    <circle cx="50" cy="50" r="35" />
+                    <path class="gear" d="M50 20 L55 25 L65 22 L68 32 L78 35 L75 45 L80 50 L75 55 L78 65 L68 68 L65 78 L55 75 L50 80 L45 75 L35 78 L32 68 L22 65 L25 55 L20 50 L25 45 L22 35 L32 32 L35 22 L45 25 Z" fill="none"/>
+                    <circle cx="50" cy="50" r="15" fill="rgba(14, 165, 233, 0.2)"/>
+                    <path d="M45 50 L50 45 L55 50 L50 55 Z" fill="var(--accent-glow)"/>
+                </svg>
+            </div>
+            <h1>AutoSage Vehicle AI</h1>
+            <p class="subtitle">Diagnostic Engine & Automotive Intelligence</p>
+            
+            <div class="input-group">
+                <label for="api-key">Groq Cloud API Key</label>
+                <input type="password" id="api-key" class="input-field" placeholder="gsk_...................................." autocomplete="off">
+            </div>
+
+            <button id="verify-btn" class="btn">
+                <span id="verify-text">Initialize Ignition sequence</span>
+                <div id="verify-loader" class="loader"></div>
+            </button>
+            
+            <div id="auth-error" class="error-msg"></div>
+        </div>
+    </div>
+
+    <!-- Chat Interface View -->
+    <div id="chat-view" class="view glass">
+        <!-- Controls Top Bar -->
+        <div class="top-bar">
+            <div class="brand-small">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 6v6l4 2"></path>
+                </svg>
+                AutoSage AI
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Engine:</label>
+                    <select id="model-select" class="input-field">
+                        <option value="llama3-8b-8192">Llama-3 8B (Fast)</option>
+                        <option value="llama3-70b-8192" selected>Llama-3 70B (Smart)</option>
+                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label title="Higher = more creative/chaotic">Temp: <span id="temp-val">0.7</span></label>
+                    <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                </div>
+
+                <button id="reset-btn" class="btn-icon" title="Clear Diagnostic History">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Wipe Memory
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-container" class="chat-container">
+            <!-- Initial AI Greeting -->
+            <div class="message ai">
+                <div class="avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+                <div class="msg-content">
+                    Ignition successful. I am AutoSage, your master automotive engineer and diagnostic AI. Provide me with any scenario, and I will tune my analysis using pure vehicular mechanics. What's the payload today?
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="textarea-wrapper">
+                <textarea id="chat-input" placeholder="Describe the issue or ask a question..." rows="1"></textarea>
+                <button id="send-btn" class="send-btn" title="Send (Enter)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         JAVASCRIPT LOGIC
+         ========================================================================== -->
+    <script>
+        // --- UI LOGIC ---
+        const views = {
+            auth: document.getElementById('auth-view'),
+            chat: document.getElementById('chat-view')
+        };
+        
+        const ui = {
+            apiKeyInput: document.getElementById('api-key'),
+            verifyBtn: document.getElementById('verify-btn'),
+            verifyText: document.getElementById('verify-text'),
+            verifyLoader: document.getElementById('verify-loader'),
+            authError: document.getElementById('auth-error'),
+            chatContainer: document.getElementById('chat-container'),
+            chatInput: document.getElementById('chat-input'),
+            sendBtn: document.getElementById('send-btn'),
+            modelSelect: document.getElementById('model-select'),
+            temperature: document.getElementById('temperature'),
+            tempVal: document.getElementById('temp-val'),
+            resetBtn: document.getElementById('reset-btn')
+        };
+
+        // Auto-resize textarea
+        ui.chatInput.addEventListener('input', function() {
+            this.style.height = '56px';
+            this.style.height = (this.scrollHeight) + 'px';
+            ui.sendBtn.disabled = this.value.trim().length === 0;
+        });
+
+        // Enter to send (Shift+Enter for newline)
+        ui.chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+
+        ui.temperature.addEventListener('input', (e) => {
+            ui.tempVal.textContent = e.target.value;
+        });
+
+        ui.resetBtn.addEventListener('click', () => {
+            // Keep only the first welcome message
+            const welcomeMsg = ui.chatContainer.firstElementChild.outerHTML;
+            ui.chatContainer.innerHTML = welcomeMsg;
+            chatHistory = [...systemPromptContext];
+        });
+
+        // Switch Views
+        function switchView(viewName) {
+            Object.values(views).forEach(v => v.classList.remove('active'));
+            views[viewName].classList.add('active');
+        }
+
+        // --- GROQ API FUNCTIONS ---
+        let sessionApiKey = null;
+        const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+        const GROQ_MODELS_URL = 'https://api.groq.com/openai/v1/models';
+
+        // Verify Key Event
+        ui.verifyBtn.addEventListener('click', async () => {
+            const key = ui.apiKeyInput.value.trim();
+            if (!key) {
+                showError("Please enter an API key.");
+                return;
+            }
+
+            setLoading(true);
+            try {
+                // Test endpoint to validate key
+                const response = await fetch(GROQ_MODELS_URL, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${key}` }
+                });
+
+                if (response.ok) {
+                    sessionApiKey = key;
+                    ui.apiKeyInput.value = ''; // Clear from DOM
+                    switchView('chat');
+                    ui.chatInput.focus();
+                } else {
+                    const err = await response.json();
+                    showError(err.error?.message || "Invalid API Key or API Error.");
+                }
+            } catch (err) {
+                showError("Network error. Check connection or CORS.");
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        function setLoading(isLoading) {
+            ui.verifyBtn.disabled = isLoading;
+            ui.verifyText.style.display = isLoading ? 'none' : 'block';
+            ui.verifyLoader.style.display = isLoading ? 'block' : 'none';
+        }
+
+        function showError(msg) {
+            ui.authError.textContent = msg;
+            ui.authError.classList.add('show');
+            setTimeout(() => ui.authError.classList.remove('show'), 4000);
+        }
+
+        // --- VEHICLE TERM DETECTION ---
+        const VEHICLE_TERMS = [
+            'torque', 'wheelbase', 'camshaft', 'transmission', 'ecu', 'abs', 'differential', 
+            'turbocharger', 'rpm', 'suspension', 'chassis', 'ignition timing', 'horsepower', 
+            'alternator', 'catalytic converter', 'crankshaft', 'pistons', 'clutch', 'gearbox', 
+            'intake manifold', 'exhaust', 'drivetrain', 'aerodynamics', 'calipers', 'spark plug',
+            'fuel injection', 'powertrain', 'supercharger', 'redline', 'cylinder'
+        ];
+
+        function processVehicleTerms(text) {
+            let safeText = escapeHTML(text);
+            let detectedTerms = new Set();
+            
+            // Sort to match longer phrases first (e.g. "ignition timing" before "timing")
+            const sortedTerms = [...VEHICLE_TERMS].sort((a, b) => b.length - a.length);
+
+            sortedTerms.forEach(term => {
+                // Regex to find word boundaries, case insensitive
+                const regex = new RegExp(`\\b(${term})\\b`, 'gi');
+                if (regex.test(text)) {
+                    detectedTerms.add(term.toLowerCase());
+                    // Highlight logic
+                    safeText = safeText.replace(regex, `<span class="term-highlight">$&</span>`);
+                }
+            });
+
+            // Convert basic markdown formatting (bold, newlines)
+            safeText = safeText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            safeText = safeText.replace(/\n/g, '<br>');
+
+            return {
+                html: safeText,
+                detected: Array.from(detectedTerms)
+            };
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag])
+            );
+        }
+
+        // --- CHATBOT ENGINE ---
+        
+        // System Prompt Design
+        const SYSTEM_PROMPT = `You are AutoSage, an elite vehicle AI mechanic, automotive engineer, and performance tuner. 
+You MUST explain EVERY concept, whether technical or abstract, using vehicle analogies and automotive engineering terminology. 
+CRITICAL RULE: You MUST include at least ONE specific technical vehicle term (e.g., torque, camshaft, ECU, chassis) in EVERY response.
+Adopt a confident, mechanical, slightly gritty tone.`;
+
+        const systemPromptContext = [
+            { role: "system", content: SYSTEM_PROMPT },
+            // Few-shot examples
+            { role: "user", content: "How do I stay motivated at work?" },
+            { role: "assistant", content: "Think of your motivation like fuel pressure in a high-performance injection system. If your mental fuel pump is failing, the engine starves and bogs down. You need to recalibrate your ECU, find your optimal power band, and keep your RPMs steady to prevent stalling out during the shift." },
+            { role: "user", content: "Why is my computer running so slow?" },
+            { role: "assistant", content: "Your system is acting like a clogged catalytic converter restricting exhaust flow. The CPU is struggling to deliver torque because background processes are creating parasitic drag on the transmission. Let's flush the RAM cache and optimize your ignition timing for better throttle response." },
+            { role: "user", content: "Explain quantum physics." },
+            { role: "assistant", content: "Imagine a transmission that doesn't just have discrete gears, but exists in all gear ratios simultaneously until you engage the clutch. That's quantum superposition. It's like having a differential that splits torque not just left and right, but across multiple probability chassis at once." }
+        ];
+
+        let chatHistory = [...systemPromptContext];
+
+        ui.sendBtn.addEventListener('click', handleSend);
+
+        async function handleSend() {
+            const userText = ui.chatInput.value.trim();
+            if (!userText || !sessionApiKey) return;
+
+            // 1. Add User Message to UI & History
+            appendMessage('user', userText);
+            chatHistory.push({ role: "user", content: userText });
+            
+            ui.chatInput.value = '';
+            ui.chatInput.style.height = '56px';
+            ui.sendBtn.disabled = true;
+
+            // 2. Add Typing Indicator
+            const typingId = addTypingIndicator();
+
+            // 3. Call API with Auto-Retry Logic
+            try {
+                const result = await generateResponseWithRetries(chatHistory, 2);
+                
+                // Remove typing
+                document.getElementById(typingId).remove();
+                
+                // Add AI Message
+                chatHistory.push({ role: "assistant", content: result.text });
+                appendAIMessage(result.text, result.latency, result.retriesUsed, result.model);
+                
+            } catch (err) {
+                document.getElementById(typingId).remove();
+                appendAIMessage("Diagnostic error: Engine light flashing. " + err.message, 0, 0, 'error');
+                chatHistory.pop(); // Remove failed user message from context to allow retry
+            }
+        }
+
+        async function generateResponseWithRetries(messages, maxRetries) {
+            let attempts = 0;
+            const model = ui.modelSelect.value;
+            const temp = parseFloat(ui.temperature.value);
+
+            while (attempts <= maxRetries) {
+                const startTime = Date.now();
+                
+                const response = await fetch(GROQ_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${sessionApiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: messages,
+                        temperature: temp,
+                        max_tokens: 1024
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'API Communication Failure');
+                }
+
+                const data = await response.json();
+                const latency = Date.now() - startTime;
+                const textResponse = data.choices[0].message.content;
+
+                // Vehiclisation Check
+                const hasTerms = VEHICLE_TERMS.some(term => 
+                    new RegExp(`\\b${term}\\b`, 'i').test(textResponse)
+                );
+
+                if (hasTerms || attempts === maxRetries) {
+                    return { 
+                        text: textResponse, 
+                        latency: latency, 
+                        retriesUsed: attempts,
+                        model: model 
+                    };
+                }
+
+                // If no terms found, retry
+                console.warn("No vehicle terms detected. Regenerating attempt:", attempts + 1);
+                attempts++;
+            }
+        }
+
+        // --- DOM MANIPULATION HELPER ---
+
+        function appendMessage(role, text) {
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            
+            const avatarSvg = role === 'user' 
+                ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`
+                : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`;
+
+            div.innerHTML = `
+                <div class="avatar">${avatarSvg}</div>
+                <div class="msg-content">${escapeHTML(text).replace(/\n/g, '<br>')}</div>
+            `;
+            
+            ui.chatContainer.appendChild(div);
+            scrollToBottom();
+        }
+
+        function appendAIMessage(text, latency, retries, model) {
+            const div = document.createElement('div');
+            div.className = `message ai`;
+            
+            const processData = processVehicleTerms(text);
+            
+            // Build Badges HTML
+            let badgesHtml = '';
+            if (processData.detected.length > 0) {
+                badgesHtml = `<div class="term-badge-container">
+                    ${processData.detected.map(term => `<span class="term-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> ${term}</span>`).join('')}
+                </div>`;
+            }
+
+            // Build Metadata (Latency, Model, Copy)
+            const metadataHtml = `
+                <div class="metadata">
+                    ${retries > 0 ? `<span class="metadata-item" title="Regenerated to enforce vehicle terminology">🔄 Retry x${retries}</span>` : ''}
+                    <span class="metadata-item">⏱ ${latency}ms</span>
+                    <span class="metadata-item">🧠 ${model}</span>
+                    <span class="metadata-item action-icon" onclick="copyToClipboard(this, \`${escapeHTML(text).replace(/`/g, '\\`')}\`)" title="Copy text">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </span>
+                </div>
+            `;
+
+            div.innerHTML = `
+                <div class="avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+                <div style="display: flex; flex-direction: column; max-width: 100%;">
+                    <div class="msg-content">
+                        ${processData.html}
+                        ${badgesHtml}
+                    </div>
+                    ${metadataHtml}
+                </div>
+            `;
+            
+            ui.chatContainer.appendChild(div);
+            scrollToBottom();
+        }
+
+        function addTypingIndicator() {
+            const id = 'typing-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = `message ai`;
+            div.innerHTML = `
+                <div class="avatar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                </div>
+                <div class="msg-content typing-indicator">
+                    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                </div>
+            `;
+            ui.chatContainer.appendChild(div);
+            scrollToBottom();
+            return id;
+        }
+
+        function scrollToBottom() {
+            ui.chatContainer.scrollTop = ui.chatContainer.scrollHeight;
+        }
+
+        // Global Copy Function for onclick handler
+        window.copyToClipboard = function(btnElem, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHtml = btnElem.innerHTML;
+                btnElem.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                setTimeout(() => { btnElem.innerHTML = originalHtml; }, 2000);
+            }).catch(err => {
+                // Fallback for document.execCommand if clipboard API fails
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    const originalHtml = btnElem.innerHTML;
+                    btnElem.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    setTimeout(() => { btnElem.innerHTML = originalHtml; }, 2000);
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+                document.body.removeChild(textArea);
+            });
+        };
+
+    </script>
+</body>
+</html>
